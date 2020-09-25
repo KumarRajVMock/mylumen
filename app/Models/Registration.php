@@ -26,7 +26,7 @@ class Registration extends Model implements JWTSubject, AuthenticatableContract,
      *
      * @var array
      */
-    protected $hidden = ['password'];
+    protected $hidden = ['password','token','deleted_by','created_at','email_verified_at','verify_status','updated_at'];
     protected $table = 'registration';
 
     /**

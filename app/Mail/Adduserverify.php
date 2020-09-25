@@ -7,16 +7,17 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class Signupverify extends Mailable
+class Adduserverify extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $token, $name;
+    public $token, $password, $name;
 
     public function __construct($registration)
     {
         $this->token = $registration->token;
-        $this->name  = $registration->name;
+        $this->password = $registration->password;
+        $this->name = $registration->name;
     }
 
     /**
@@ -26,6 +27,6 @@ class Signupverify extends Mailable
      */
     public function build()
     {
-        return $this->view('emails.signup',['name' => $this->name, 'token' => $this->token,]);
+        return $this->view('emails.addverify',['token' => $this->token,'name' => $this->name,'password' => $this->password]);
     }
 }

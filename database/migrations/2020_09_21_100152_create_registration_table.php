@@ -16,11 +16,13 @@ class CreateRegistrationTable extends Migration
         Schema::create('registration', function (Blueprint $table) {
             $table->increments('id');
             $table->string('name');
-            $table->string('email')->unique();
+            $table->string('email');
             $table->string('password');
             $table->string('role');
-            $table->string('createdBy');
+            $table->integer('created_by')->nullable($value = true);
+            $table->integer('deleted_by')->nullable($value = true);
             $table->string('token');
+            $table->string('verify_status');
             $table->timestamp('email_verified_at')->nullable();
             $table->timestamps();
         });

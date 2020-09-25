@@ -14,54 +14,28 @@ use Illuminate\Http\Request;
 |
 */
 
-$router->get('/', function () use ($router) {
-    return $router->app->version();
-});
-
-
-$router->group(['prefix' => 'api', /*'middleware' => "auth"*/], function () use ($router) {
-    $router->get('login',  ['uses' => 'RegistrationController@Authenticate']);
+$router->group(['prefix' => 'api', ], function () use ($router) {
+    $router->get('login',  ['uses' => 'RegistrationController@Login']);
     
     $router->get('signup', ['uses' => 'RegistrationController@Signup']);
 
+    $router->get('verify', ['uses' => 'RegistrationController@Verify']);
+
     $router->get('forgotpassword', ['uses' => 'RegistrationController@Forgotpassword']);
 
-    $router->get('allusers', ['uses' => 'UserController@allUsers']);
+    $router->get('resetpassword', ['uses' => 'RegistrationController@Resetpassword']);
+
+    $router->get('allusers', 'UserController@allUsers');
 
     $router->get('profile', 'UserController@profile');
 
-    $router->get('users/{id}', 'UserController@singleUser');
+    $router->get('adduser', 'UserController@addUser');
 
+    $router->get('deleteuser', 'UserController@deleteUser');
 
-    // $router->get('verify/{token}');
+    $router->get('search', 'UserController@search');
 
-    // $router->delete('registration/{id}', ['uses' => 'RegistrationController@delete']);
-
-    // $router->put('registration/{id}', ['uses' => 'RegistrationController@update']);
 });
 
-// $router->group(['prefix' => 'api'], function () use ($router) {
 
-//     $router->post('signup', 'RegistrationController@register');
-
-//     $router->post('login', 'RegistrationController@login');
-
-//     $router->get('forgotpassword', 'RegistrationController@Forgotpassword');
-
-    
-// });
-
-
-// $router->get('/post/{id}', ['middleware' => 'auth', function (Request $request, $id) {
-//     $user = Auth::registration();
-
-//     $user = $request->name();
-
-//     //
-// }]);
-//['middleware' => "auth"],
-
-// $router->group(['middleware'=>"auth"],function($router) {
-
-// });
 

@@ -2,11 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\RegistrationController;
+use App\Mail\Adduserverify;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
-use  App\Models\Registration;
+use Illuminate\Http\Request;
+use App\Models\Registration;
+use Tymon\JWTAuth\JWTAuth;
+use Illuminate\Support\Facades\DB;
+
 
 class UserController extends Controller
 {
+
     /**
      * Instantiate a new UserController instance.
      *
@@ -36,25 +46,124 @@ class UserController extends Controller
     {
         // echo "akjhd";
         // die;
+        if(Auth::user() == null)
+        {
+            return response()->json(['message' => 'Please login to continue']);
+        }
         return response()->json(['users' =>  Registration::all()], 200);
     }
 
-    /**
-     * Get one user.
-     *
-     * @return Response
-     */
-    public function singleUser($id)
+    public function addUser(Request $request)
     {
-        try {
-            $user = Registration::findOrFail($id);
-
-            return response()->json(['user' => $user], 200);
-
-        } catch (\Exception $e) {
-
-            return response()->json(['message' => 'user not found!'], 404);
+        if(Auth::user() == null)
+        {
+            return response()->json(['message' => 'Please login to continue']);
         }
+
+        $this->validate($request, [
+            'name'     => 'required|string',
+            'email'    => 'required|email|max:255',
+        ]);
+        
+        if(Auth::user()->role != "Admin")
+        {
+            return response()->json(['message' => 'Only admin can add users!']);
+        }
+
+        $query = Registration::where('email', $request->input('email'))->get();
+        if(count($query) != 0)
+        {
+            return response()->json(['message' => 'Email already exist!']);
+        }
+
+        $adduser = new Registration;
+        
+        $adduser->name = $request->name;
+        $adduser->email = $request->email;
+        $adduser->password = rtrim(base64_encode(md5(microtime())),"=");
+        $adduser->role = "Normal";
+        $adduser->created_by = Auth::user()->id;
+        $adduser->verify_status = "Yes";        
+        $adduser->deleted_by = null;
+        
+        $token = rtrim(base64_encode(md5(microtime())),"=");
+        $adduser->token = $token;
+        $adduser->save();
+
+        Mail::to($request->email)->send(new Adduserverify($adduser));
+        
+        return response()->json(['message' => 'Password sent to the email']);
+
+    }
+
+    public function deleteUser(Request $request)
+    {
+        if(Auth::user() == null)
+        {
+            return response()->json(['message' => 'Please login to continue']);
+        }
+
+        $this->validate($request, [
+            'email'    => 'required|email|max:255',
+        ]);
+
+        if(Auth::user()->name != "Admin")
+        {
+            return response()->json(['message' => 'Only admin can delete users!']);
+        }
+
+        $deluser = Registration::where('email', $request->input('email'))->first();
+        if(count($deluser) == 0)
+        {
+            return response()->json(['message' => 'Enter a registered user to delete!']);
+        }
+        if($deluser[0]->role == "Admin")
+        {
+            return response()->json(['message' => 'Admins can not be deleted']);
+        }
+
+        DB::table('registration')
+                ->where('token', $deluser->token)
+                ->update(['deleted_by' => Auth::user()->id]);
+
+
+        return response()->json(['message' => 'User deleted Successfully']);
+    }
+
+    public function search(Request $request)
+    {
+        if(Auth::user() == null)
+        {
+            return response()->json(['message' => 'Please login to continue']);
+        }
+
+        $users = Registration::where('deleted_by', null);
+        
+        if ($request->has('email')) 
+        {
+            $users->where('email', $request->email);
+        }
+        
+        if ($request->has('name')) 
+        {
+            $users->where('name', $request->name);
+        }
+        
+        if ($request->has('created_by')) 
+        {
+            $users->where('created_by', $request->created_by);
+        }
+        
+        if ($request->has('role')) 
+        {
+            $users->where('role', $request->role);
+        }
+        
+        if($users == null)
+        {
+            return response()->json(['message' => 'Nothing to display']);
+        }
+        return $users->get()->toArray();
 
     }
 

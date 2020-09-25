@@ -6,6 +6,6 @@
     <title>Document</title>
 </head>
 <body>
-    <h1>Your email is verified!</h1>
+<p>localhost:8000/api/resetpassword?token=<?php echo $token; ?>&new_password=  </p>
 </body>
 </html>

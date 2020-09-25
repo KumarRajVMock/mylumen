@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Mail\Signupverify;
+use App\Mail\Resetpassword;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Registration;
+use App\Models\Forgotpassword;
 use Tymon\JWTAuth\JWTAuth;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class RegistrationController extends Controller
 {
@@ -17,59 +21,178 @@ class RegistrationController extends Controller
     public function signup(Request $request)
     {
         $this->validate($request, [
-            'name'     => 'required',
+            'name'     => 'required|string',
             'email'    => 'required|email|max:255',
-            'password' => 'required',
-            'role'     => 'required',
-            'createdBy'=> 'required',
+            'password' => 'required|string|min:4',
         ]);
 
+        $query = Registration::where('email', $request->input('email'))->get();
+        if(count($query) != 0)
+        {
+            return response()->json(['message' => 'Email already exist!']);
+        }
         $registration = new Registration;
-        
         $registration->name = $request->name;
         $registration->email = $request->email;
         $registration->password = Hash::make($request->password);
-        $registration->role = $request->role;
-        $registration->createdBy = $request->createdBy;
+        $registration->role = "Admin";
+        $registration->verify_status = "No";
         
-        $token = 'alpha';
+        $token = rtrim(base64_encode(md5(microtime())),"=");
         $registration->token = $token;
         $registration->save();
         
-        Mail::to($request->email)->send(new Signupverify($token));
+        Mail::to($request->email)->send(new Signupverify($registration));
         
-        return response()->json(compact('token'));    
+        return response()->json(['message' => 'Verify your email!']);
     }
 
+    public function verify(Request $request)
+    {
+        $this->validate($request, [
+            'name'  => 'required|string',
+            'token' => 'required',
+        ]);
+        
+        $name = $request->input('name');
+        $token = $request->input('token');
+        
+        $value = DB::table('registration')->where([
+            ['name', $name],
+            ['token', $token],
+        ])->get();
+        
+        if(count($value) > 0)
+        {
+            if($value[0]->verify_status != 'Yes')
+            {
+                DB::table('registration')
+                ->where('token', $token)
+                ->update(['verify_status' => 'Yes', 'email_verified_at' => Carbon::now()->toDateTimeString()]);
+                
+                return response()->json(['message' => 'Verification done!']);
+            }
+            else
+            {
+                return response()->json(['message' => 'Already Verified!']);
+            }
+        }
+        else
+        {
+            return response()->json(['message' => 'Please Login!']);
+        }
+    }
 
-
-    public function authenticate(Request $request)
+    public function login(Request $request)
     {
         $this->validate($request, [
             'email'    => 'required|email|max:255',
-            'password' => 'required',
+            'password' => 'required|string',
         ]);
-
-        $credentials = $request->only(['email', 'password']);
-
-        if (! $token = Auth::attempt($credentials)) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+        
+        $query = Registration::where('email', $request->input('email'))->get();
+        
+        if(count($query) > 0)
+        {
+            if( $query[0]->deleted_by != NULL)
+            {
+                return response()->json(['Deleted by: ' => $query[0]->deleted_by]);
+            }
+            
+            elseif($query[0]->verify_status == "No")
+            {
+                return response()->json(['message' => 'Please verify email']);
+            }
+            
+            // elseif (Hash::check($request->password, $query[0]->password))//hash check
+            // {
+            //     echo "Success \n";
+            //     $tok = Auth::attempt($request->only(['email', 'password']));
+            //     echo($tok);
+            //     // return $this->respondWithToken($tok);//
+            // }
+            elseif($tok = Auth::attempt($request->only(['email', 'password'])))
+            {
+                echo "Success \n";
+                return $this->respondWithToken($tok);
+            }
+            
+            else
+            {
+                return response()->json(['message' => 'Incorrect password']);
+            }
+        }       
+        else
+        {
+            return response()->json(['message' => 'Incorrect Email. Enter correct email or signup first to continue.']);
         }
-        return $this->respondWithToken($token);
     }
 
 
 
     public function forgotpassword(Request $request)
     {
-        $this->validate($request, ['email' => 'required', 'new_password' => 'required']);
+        $this->validate($request, ['email' => 'required',]);
 
         $registration = Registration::where('email', $request->input('email'))->first();
+        if($registration != null)
+        {
+            $token = rtrim(base64_encode(md5(microtime())),"=");
+            $query = new Forgotpassword;
+            $query->token = $token;
+            $query->email = $request->input('email');
+            $query->reset_status = "No";
+            $query->save();
+            Mail::to($request->email)->send(new Resetpassword($query));
+        }
         
-        $registration->password = Hash::make($request->new_password);
-
-        $registration->save();
+        return response()->json(['message','Check your email to reset your password']);
     }
+
+    public function resetpassword(Request $request)
+    {
+        $this->validate($request, [
+            'token' => 'required',
+            'new_password' => 'required',
+        ]);
+        
+        $token = $request->input('token');
+        $query = DB::table('forgotpassword')->where('token', $token)->get();
+        
+        if(count($query) > 0)
+        {
+            if($query[0]->reset_status != "Yes")
+            {
+                DB::table('forgotpassword')
+                ->where('token',$token)
+                ->update(['reset_status' => 'Yes']);
+
+                $newpass = Hash::make($request->new_password);
+            
+                DB::table('registration')
+                ->where('email', $query[0]->email)
+                ->update(['password' => $newpass, 'password_reset_at' => Carbon::now()->toDateTimeString()]);
+
+            }
+            else
+            {
+                return response()->json(['message','Password reset already']);
+            }
+            // DB::table('registration')
+            // ->where([
+            //     ['email', $value[0]->email],
+            //     ['token','<>', $token],
+            // ])
+            // ->delete();
+            return response()->json(['message','Password reset successful']);
+
+        }
+        else
+        {
+            return response()->json(['message','Please login or signup']);
+        }
+    }
+
 
 
 }    

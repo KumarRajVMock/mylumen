@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\Order;
+use App\Models\Registration;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -11,22 +11,11 @@ class Resetpassword extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * The order instance.
-     *
-     * @var Order
-     */
-    public $order;
+    public $token;
 
-    /**
-     * Create a new message instance.
-     *
-     * @param  \App\Models\Order  $order
-     * @return void
-     */
-    public function __construct(Order $order)
+    public function __construct($query)
     {
-        $this->order = $order;
+        $this->token = $query->token;
     }
 
     /**
@@ -36,6 +25,6 @@ class Resetpassword extends Mailable
      */
     public function build()
     {
-        return $this->view('emails.orders.shipped');
+        return $this->view('emails.reset',['token' => $this->token,]);
     }
 }
