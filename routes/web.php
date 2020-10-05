@@ -15,27 +15,28 @@ use Illuminate\Http\Request;
 */
 
 $router->group(['prefix' => 'api', ], function () use ($router) {
-    $router->get('login',  ['uses' => 'RegistrationController@Login']);
+    $router->post('login',  ['uses' => 'RegistrationController@Login']);
     
-    $router->get('signup', ['uses' => 'RegistrationController@Signup']);
+    $router->post('signup', ['uses' => 'RegistrationController@Signup']);
 
-    $router->get('verify', ['uses' => 'RegistrationController@Verify']);
+    $router->post('verify', ['uses' => 'RegistrationController@Verify']);
 
-    $router->get('forgotpassword', ['uses' => 'RegistrationController@Forgotpassword']);
+    $router->post('forgotpassword', ['uses' => 'RegistrationController@Forgotpassword']);
 
-    $router->get('resetpassword', ['uses' => 'RegistrationController@Resetpassword']);
+    $router->post('resetpassword', ['uses' => 'RegistrationController@Resetpassword']);
 
     $router->get('allusers', 'UserController@allUsers');
 
     $router->get('profile', 'UserController@profile');
 
-    $router->get('adduser', 'UserController@addUser');
+    $router->post('adduser', 'UserController@addUser');
 
-    $router->get('deleteuser', 'UserController@deleteUser');
+    $router->delete('deleteuser', 'UserController@deleteUser');
 
     $router->get('search', 'UserController@search');
 
 });
 
+// make git m="your message"
 
 

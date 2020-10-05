@@ -107,17 +107,17 @@ class UserController extends Controller
             'email'    => 'required|email|max:255',
         ]);
 
-        if(Auth::user()->name != "Admin")
+        if(Auth::user()->role != "Admin")
         {
             return response()->json(['message' => 'Only admin can delete users!']);
         }
 
-        $deluser = Registration::where('email', $request->input('email'))->first();
-        if(count($deluser) == 0)
+        $deluser = Registration::where('email' ,$request->input('email'))->first();
+        if($deluser == null)
         {
             return response()->json(['message' => 'Enter a registered user to delete!']);
         }
-        if($deluser[0]->role == "Admin")
+        if($deluser->role == "Admin")
         {
             return response()->json(['message' => 'Admins can not be deleted']);
         }
@@ -132,10 +132,10 @@ class UserController extends Controller
 
     public function search(Request $request)
     {
-        if(Auth::user() == null)
-        {
-            return response()->json(['message' => 'Please login to continue']);
-        }
+        // if(Auth::user() == null)
+        // {
+        //     return response()->json(['message' => 'Please login to continue']);
+        // }
 
         $users = Registration::where('deleted_by', null);
         

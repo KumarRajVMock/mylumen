@@ -35,7 +35,7 @@ class RegistrationController extends Controller
         $registration->name = $request->name;
         $registration->email = $request->email;
         $registration->password = Hash::make($request->password);
-        $registration->role = "Admin";
+        $registration->role = "Normal";
         $registration->verify_status = "No";
         
         $token = rtrim(base64_encode(md5(microtime())),"=");
@@ -64,7 +64,7 @@ class RegistrationController extends Controller
         
         if(count($value) > 0)
         {
-            if($value[0]->verify_status != 'Yes')
+            if($value[0]->verify_status !== 'Yes')
             {
                 DB::table('registration')
                 ->where('token', $token)
@@ -96,7 +96,7 @@ class RegistrationController extends Controller
         {
             if( $query[0]->deleted_by != NULL)
             {
-                return response()->json(['Deleted by: ' => $query[0]->deleted_by]);
+                return response()->json(['Deleted by: ' => $query[0]->deleted_by]);//soft delete
             }
             
             elseif($query[0]->verify_status == "No")
@@ -111,7 +111,7 @@ class RegistrationController extends Controller
             //     echo($tok);
             //     // return $this->respondWithToken($tok);//
             // }
-            elseif($tok = Auth::attempt($request->only(['email', 'password'])))
+            elseif($tok = Auth::attempt($request->only(['email', 'password'])))//check order
             {
                 echo "Success \n";
                 return $this->respondWithToken($tok);
@@ -171,7 +171,7 @@ class RegistrationController extends Controller
             
                 DB::table('registration')
                 ->where('email', $query[0]->email)
-                ->update(['password' => $newpass, 'password_reset_at' => Carbon::now()->toDateTimeString()]);
+                ->update(['password' => $newpass,]);
 
             }
             else
