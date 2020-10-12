@@ -19,7 +19,7 @@ $router->group(['prefix' => 'api', ], function () use ($router) {
     
     $router->post('signup', ['uses' => 'RegistrationController@Signup']);
 
-    $router->post('verify', ['uses' => 'RegistrationController@Verify']);
+    $router->post('verify/{token}', ['uses' => 'RegistrationController@Verify']);
 
     $router->post('forgotpassword', ['uses' => 'RegistrationController@Forgotpassword']);
 
@@ -31,9 +31,9 @@ $router->group(['prefix' => 'api', ], function () use ($router) {
 
     $router->post('adduser', 'UserController@addUser');
 
-    $router->delete('deleteuser', 'UserController@deleteUser');
+    $router->delete('deleteuser/{userid}', 'UserController@deleteUser');
 
-    $router->get('search', 'UserController@search');
+    $router->post('search', 'UserController@search');
 
 });
 

@@ -46,19 +46,12 @@ class UserController extends Controller
     {
         // echo "akjhd";
         // die;
-        if(Auth::user() == null)
-        {
-            return response()->json(['message' => 'Please login to continue']);
-        }
-        return response()->json(['users' =>  Registration::all()], 200);
+        $query = Registration::where('deleted_by', null)->get();
+        return response()->json(['users' =>  $query, ], 200);
     }
 
     public function addUser(Request $request)
     {
-        if(Auth::user() == null)
-        {
-            return response()->json(['message' => 'Please login to continue']);
-        }
 
         $this->validate($request, [
             'name'     => 'required|string',
@@ -96,47 +89,32 @@ class UserController extends Controller
 
     }
 
-    public function deleteUser(Request $request)
+    public function deleteUser($userid)
     {
-        if(Auth::user() == null)
-        {
-            return response()->json(['message' => 'Please login to continue']);
-        }
-
-        $this->validate($request, [
-            'email'    => 'required|email|max:255',
-        ]);
-
         if(Auth::user()->role != "Admin")
         {
-            return response()->json(['message' => 'Only admin can delete users!']);
+            return response()->json(['message' => 'Only admin can delete users!'],401);
         }
-
-        $deluser = Registration::where('email' ,$request->input('email'))->first();
+        
+        $deluser = Registration::where('id', $userid)->first();
         if($deluser == null)
         {
-            return response()->json(['message' => 'Enter a registered user to delete!']);
+            return response()->json(['message' => 'Enter a registered user to delete!'],403);
         }
         if($deluser->role == "Admin")
         {
-            return response()->json(['message' => 'Admins can not be deleted']);
+            return response()->json(['message' => 'Admins can not be deleted'],403);
         }
-
+        
         DB::table('registration')
-                ->where('token', $deluser->token)
-                ->update(['deleted_by' => Auth::user()->id]);
-
-
-        return response()->json(['message' => 'User deleted Successfully']);
+            ->where('token', $deluser->token)
+            ->update(['deleted_by' => Auth::user()->id]);
+        
+        return response()->json(['message' => 'User deleted Successfully','user' => $deluser],200);
     }
 
     public function search(Request $request)
     {
-        // if(Auth::user() == null)
-        // {
-        //     return response()->json(['message' => 'Please login to continue']);
-        // }
-
         $users = Registration::where('deleted_by', null);
         
         if ($request->has('email')) 
@@ -164,6 +142,7 @@ class UserController extends Controller
             return response()->json(['message' => 'Nothing to display']);
         }
         return $users->get()->toArray();
+        // return response()->json(['message' => 'Successful','users' => $users->get()->toArray()],200);
 
     }
 

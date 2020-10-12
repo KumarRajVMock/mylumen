@@ -29,7 +29,7 @@ class RegistrationController extends Controller
         $query = Registration::where('email', $request->input('email'))->get();
         if(count($query) != 0)
         {
-            return response()->json(['message' => 'Email already exist!']);
+            return response()->json(['message' => 'Email already exist!'],401);
         }
         $registration = new Registration;
         $registration->name = $request->name;
@@ -44,21 +44,12 @@ class RegistrationController extends Controller
         
         Mail::to($request->email)->send(new Signupverify($registration));
         
-        return response()->json(['message' => 'Verify your email!']);
+        return response()->json(['message' => 'Verify your email!'],200);
     }
 
-    public function verify(Request $request)
-    {
-        $this->validate($request, [
-            'name'  => 'required|string',
-            'token' => 'required',
-        ]);
-        
-        $name = $request->input('name');
-        $token = $request->input('token');
-        
+    public function verify($token)
+    {        
         $value = DB::table('registration')->where([
-            ['name', $name],
             ['token', $token],
         ])->get();
         
@@ -70,16 +61,16 @@ class RegistrationController extends Controller
                 ->where('token', $token)
                 ->update(['verify_status' => 'Yes', 'email_verified_at' => Carbon::now()->toDateTimeString()]);
                 
-                return response()->json(['message' => 'Verification done!']);
+                return response()->json(['message' => 'Verification done!'],200);
             }
             else
             {
-                return response()->json(['message' => 'Already Verified!']);
+                return response()->json(['message' => 'Already Verified!'],403);
             }
         }
         else
         {
-            return response()->json(['message' => 'Please Login!']);
+            return response()->json(['message' => 'Please Login!'],401);
         }
     }
 
@@ -96,12 +87,13 @@ class RegistrationController extends Controller
         {
             if( $query[0]->deleted_by != NULL)
             {
-                return response()->json(['Deleted by: ' => $query[0]->deleted_by]);//soft delete
+                return response()->json(['message' => 'Please signup to continue'], 401);
+                // return response()->json(['Deleted by: ' => $query[0]->deleted_by]);//soft delete
             }
             
             elseif($query[0]->verify_status == "No")
             {
-                return response()->json(['message' => 'Please verify email']);
+                return response()->json(['message' => 'Please verify email'], 403);
             }
             
             // elseif (Hash::check($request->password, $query[0]->password))//hash check
@@ -113,18 +105,17 @@ class RegistrationController extends Controller
             // }
             elseif($tok = Auth::attempt($request->only(['email', 'password'])))//check order
             {
-                echo "Success \n";
-                return $this->respondWithToken($tok);
+                return $this->respondWithToken($tok, $query[0]);
             }
             
             else
             {
-                return response()->json(['message' => 'Incorrect password']);
+                return response()->json(['message' => 'Incorrect password'], 401);
             }
         }       
         else
         {
-            return response()->json(['message' => 'Incorrect Email. Enter correct email or signup first to continue.']);
+            return response()->json(['message' => 'Incorrect Email. Enter correct email or signup first to continue.'],401);
         }
     }
 
@@ -146,7 +137,7 @@ class RegistrationController extends Controller
             Mail::to($request->email)->send(new Resetpassword($query));
         }
         
-        return response()->json(['message','Check your email to reset your password']);
+        return response()->json(['message','Check your email to reset your password'], 200);
     }
 
     public function resetpassword(Request $request)
@@ -176,7 +167,7 @@ class RegistrationController extends Controller
             }
             else
             {
-                return response()->json(['message','Password reset already']);
+                return response()->json(['message','Password reset already'],403);
             }
             // DB::table('registration')
             // ->where([
@@ -184,12 +175,12 @@ class RegistrationController extends Controller
             //     ['token','<>', $token],
             // ])
             // ->delete();
-            return response()->json(['message','Password reset successful']);
+            return response()->json(['message','Password reset successful'],200);
 
         }
         else
         {
-            return response()->json(['message','Please login or signup']);
+            return response()->json(['message','Please login or signup'],403);
         }
     }
 

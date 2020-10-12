@@ -7,5 +7,6 @@
 </head>
 <body>
 <p>localhost:8000/api/resetpassword?token=<?php echo $token; ?>&new_password=  </p>
+<a href="{{url('http://localhost:3000/resetpassword/'.$token)}}">Reset your Password</a>
 </body>
 </html>
