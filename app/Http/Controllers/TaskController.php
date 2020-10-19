@@ -117,8 +117,8 @@ class TaskController extends Controller
     public function searchTask(Request $request)
     {
         $user = Auth::user();
-        // $tasks = Task::where('status','<>', 'Deleted')->get();
-        $tasks = Task::all();
+        $tasks = Task::where('status','<>', 'Deleted')->get();
+        // $tasks = Task::all();
         if($user->role != "Admin")
         {
             $tasks = $tasks->where('assignee', $user->email);
@@ -136,7 +136,7 @@ class TaskController extends Controller
         
         if ($request->has('assignee')) 
         {
-            $tasks->where('assignee', $request->assignee);
+            $tasks->where('assignee', $request->get('assignee'));
         }
         
         if ($request->has('creator')) 
@@ -149,6 +149,6 @@ class TaskController extends Controller
         {
             return response()->json(['message' => 'Nothing to display']);
         }
-        return $tasks->get()->toArray();
+        return $tasks->toArray();
     }
 }
