@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\RegistrationController;
 use App\Mail\Adduserverify;
+use App\Mail\Addtask;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Registration;
+use App\Models\Task;
 use Tymon\JWTAuth\JWTAuth;
 use Illuminate\Support\Facades\DB;
+use App\Events\AddTaskEvent;
 
 
 class UserController extends Controller
@@ -34,7 +37,7 @@ class UserController extends Controller
      */
     public function profile()
     {
-        return response()->json(['user' => Auth::user()], 200);
+        return response()->json(['user' => Auth::user()], 200);        
     }
 
     /**
@@ -143,7 +146,6 @@ class UserController extends Controller
         }
         return $users->get()->toArray();
         // return response()->json(['message' => 'Successful','users' => $users->get()->toArray()],200);
-
     }
 
 }

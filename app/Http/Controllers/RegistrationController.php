@@ -35,7 +35,8 @@ class RegistrationController extends Controller
         $registration->name = $request->name;
         $registration->email = $request->email;
         $registration->password = Hash::make($request->password);
-        $registration->role = "Normal";
+        // $registration->role = "Normal";
+        $registration->role = "Admin";
         $registration->verify_status = "No";
         
         $token = rtrim(base64_encode(md5(microtime())),"=");

@@ -27,13 +27,23 @@ $router->group(['prefix' => 'api', ], function () use ($router) {
 
     $router->get('allusers', 'UserController@allUsers');
 
-    $router->get('profile', 'UserController@profile');
+    $router->get('profile/', 'UserController@profile');
 
     $router->post('adduser', 'UserController@addUser');
 
     $router->delete('deleteuser/{userid}', 'UserController@deleteUser');
 
     $router->post('search', 'UserController@search');
+
+    $router->post('addtask', 'TaskController@addTask');
+
+    $router->post('updatestatus', 'TaskController@updateTaskStatus');
+
+    $router->post('updatetask', 'TaskController@updateTask');
+
+    $router->get('viewtask', 'TaskController@viewTask');
+
+    $router->post('searchtask', 'TaskController@searchTask');
 
 });
 
