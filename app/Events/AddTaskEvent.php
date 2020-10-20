@@ -38,6 +38,6 @@ class AddTaskEvent implements ShouldBroadcast
 
     public function broadcastAs()
     {
-        return 'my-newtask';
+        return 'client-my-newtask';
     }
 }

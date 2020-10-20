@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Mail\Signupverify;
-use App\Mail\Resetpassword;
+// use App\Mail\Signupverify;
+// use App\Mail\Resetpassword;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +14,8 @@ use App\Models\Forgotpassword;
 use Tymon\JWTAuth\JWTAuth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Jobs\SignupJob;
+use App\Jobs\ResetpasswordJob;
 
 class RegistrationController extends Controller
 {
@@ -43,8 +45,8 @@ class RegistrationController extends Controller
         $registration->token = $token;
         $registration->save();
         
-        Mail::to($request->email)->send(new Signupverify($registration));
-        
+        // Mail::to($request->email)->send(new Signupverify($registration));
+        $this->dispatch(new SignupJob($request->email, $registration));
         return response()->json(['message' => 'Verify your email!'],200);
     }
 
@@ -120,8 +122,6 @@ class RegistrationController extends Controller
         }
     }
 
-
-
     public function forgotpassword(Request $request)
     {
         $this->validate($request, ['email' => 'required',]);
@@ -135,7 +135,8 @@ class RegistrationController extends Controller
             $query->email = $request->input('email');
             $query->reset_status = "No";
             $query->save();
-            Mail::to($request->email)->send(new Resetpassword($query));
+            // Mail::to($request->email)->send(new Resetpassword($query));
+            $this->dispatch(new ResetpasswordJob($request->email, $query));
         }
         
         return response()->json(['message','Check your email to reset your password'], 200);

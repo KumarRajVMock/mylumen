@@ -8,6 +8,7 @@ use Illuminate\Queue\InteractsWithQueue;
 
 class ExampleListener
 {
+    public $message;
     public function __construct()
     {
         //
@@ -15,6 +16,6 @@ class ExampleListener
 
     public function handle(AddTaskEvent $event)
     {
-        //
+        $message = $event->message;
     }
 }
