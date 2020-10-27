@@ -12,23 +12,20 @@ use App\Models\Registration;
 use App\Models\Task;
 use Tymon\JWTAuth\JWTAuth;
 use Illuminate\Support\Facades\DB;
-use App\Events\AddTaskEvent;
+use App\Events\NotifyEvent;
+use App\Models\Notify;
 use DateTime;
+use App\Jobs\AddtaskJob;
+use Pusher;
 
 
 class TaskController extends Controller
 {
-
-    /**
-     * Instantiate a new UserController instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware('auth');
     }
-
+    
     public function addTask(Request $request)
     {
         $this->validate($request, [
@@ -41,36 +38,55 @@ class TaskController extends Controller
         if(Auth::user()->role != "Admin" && Auth::user()->email != $request->input('assignee'))
             return response()->json(['message' => 'Only admin can assign to other users!']);
         
+        $person = Registration::where('email',$request->input('assignee'))->first();
         $addtask = new Task;
         $date = new DateTime($request->get('due_date'));
         $addtask->due_date    = $date->format('Y-m-d');
         $addtask->title       = $request->title;
-        $addtask->assignee    = $request->assignee;
+        $addtask->assignee    = $person->id;
         $addtask->creator     = Auth::user()->id;
         $addtask->description = $request->description;
         $addtask->status      = "Assigned";
         $addtask->save();
         
-        Mail::to($request->assignee)->send(new Addtask($addtask));
-
-        // event(new AddTaskEvent($addtask->creator));
+        $this->dispatch((new AddtaskJob($request->assignee, $addtask)));
         
-        return response()->json(['message' => 'Task Added', 'task' => $addtask]);
+        $newtask = ['title'=> $request->title,
+                    'assignee'=> $request->assignee,
+                    'due_date'=> $date->format('Y-m-d'),
+                    'status'=> "Assigned",
+                    'description'=>$request->description,
+                    'creator'=>Auth::user()->id,
+                    'id'=>$addtask->id,
+                    ];
+        return response()->json(['message' => 'Task Added', 'task' => $newtask]);
     }
-
+    
     public function updateTaskStatus(Request $request)
     {
-        $taskquery = Task::where('id', $request->input('id'))->first();
-        if($taskquery->assignee != Auth::user()->email)
+        $this->validate($request, [
+            'id'          => 'required',
+            'status'    => 'required|string',
+        ]);
+        $task = Task::where('id', $request->input('id'))->first();
+        if($task->assignee != Auth::user()->id)
         {
             return response()->json(['message' => "Only assignee can update the tasks"],401);
         }
-        $taskquery->status = $request->status;
-        $taskquery->save();
+        $task->status = $request->status;
+        $task->save();
+        
+        $data = new Notify;
+        $data->message = 'Status of Task: ' . $task->title . ' has been updated';
+        $data->messageHead = 'Task Updated';
+        $data->assignee = $task->assignee;
+        $data->channel = 'my-channel';
+        $data->event = 'updateStatus';
+        event(new NotifyEvent($data));
         
         return response()->json(['message' => 'Task Updated']);
     }
-
+    
     public function updateTask(Request $request)
     {
         $this->validate($request, [
@@ -90,12 +106,23 @@ class TaskController extends Controller
         $task->save();
         return response()->json(['message' => 'Task Updated']);
     }
-
+    
     public function viewTask()
     {
         $user = Auth::user();
-        // $tasks = Task::all();
-        $tasks = Task::where('status','<>', 'Deleted')->orderBy('due_date')->get();
+        $tasks = DB::table('registration')
+                    ->join('tasks', 'registration.id', '=', 'tasks.assignee')
+                    ->select('tasks.id as id', 
+                            'tasks.creator as creator', 
+                            'tasks.title as title', 
+                            'tasks.description as description',
+                            'tasks.due_date as due_date',
+                            'registration.email as assignee',
+                            'tasks.status as status')
+                    ->where('tasks.status','<>', 'Deleted')
+                    ->orderBy('due_date')
+                    ->get();
+        
         if($user->role == "Admin")
         {
             return response()->json(['tasks' =>  $tasks], 200);
@@ -106,19 +133,23 @@ class TaskController extends Controller
             return response()->json(['tasks' =>  $query, ], 200);
         }
     }
-    // public function MyTask()
-    // {
-    //     // $tasks = Task::where('status','<>', 'Deleted');
-    //     $tasks = Task::all();
-    //     $query = $tasks->where('assignee', $user->email)->orderBy('due_date');
-    //     return response()->json(['tasks' =>  $query, ], 200);
-    // }
-
+    
     public function searchTask(Request $request)
     {
         $user = Auth::user();
-        $tasks = Task::where('status','<>', 'Deleted')->get();
-        // $tasks = Task::all();
+        $tasks = DB::table('registration')
+                    ->join('tasks', 'registration.id', '=', 'tasks.assignee')
+                    ->select('tasks.id as id', 
+                            'tasks.creator as creator', 
+                            'tasks.title as title', 
+                            'tasks.description as description',
+                            'tasks.due_date as due_date',
+                            'registration.email as assignee',
+                            'tasks.status as status')
+                    ->where('tasks.status','<>', 'Deleted')
+                    ->orderBy('id')
+                    ->paginate(6);
+                    // ->get();
         if($user->role != "Admin")
         {
             $tasks = $tasks->where('assignee', $user->email);
@@ -136,7 +167,7 @@ class TaskController extends Controller
         
         if ($request->has('assignee')) 
         {
-            $tasks->where('assignee', $request->get('assignee'));
+            $tasks->where('assignee', $request->assignee);
         }
         
         if ($request->has('creator')) 

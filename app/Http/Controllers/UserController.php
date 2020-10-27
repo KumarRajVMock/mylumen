@@ -15,6 +15,8 @@ use App\Models\Task;
 use Tymon\JWTAuth\JWTAuth;
 use Illuminate\Support\Facades\DB;
 use App\Events\AddTaskEvent;
+use App\Jobs\AdduserJob;
+
 
 
 class UserController extends Controller
@@ -86,7 +88,8 @@ class UserController extends Controller
         $adduser->token = $token;
         $adduser->save();
 
-        Mail::to($request->email)->send(new Adduserverify($adduser));
+        // Mail::to($request->email)->send(new Adduserverify($adduser));
+        $this->dispatch(new AdduserJob($request->email, $adduser));
         
         return response()->json(['message' => 'Password sent to the email']);
 

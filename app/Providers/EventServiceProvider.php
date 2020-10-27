@@ -15,8 +15,8 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\ExampleEvent::class => [
             \App\Listeners\ExampleListener::class,
         ],
-        \App\Events\AddTaskEvent::class => [
-            \App\Listeners\AddTaskListener::class,
+        \App\Events\NotifyEvent::class => [
+            \App\Listeners\NotifyListener::class,
         ],
     ];
 }
